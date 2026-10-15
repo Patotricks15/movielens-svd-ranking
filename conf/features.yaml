@@ -1,0 +1,162 @@
+# Feature specification for movielens-neural-ranking.
+#
+# Every feature the pipeline materializes is declared here. The registry
+# check in `recommender.features.registry` asserts this file and the
+# implementation agree in BOTH directions, so a transform cannot be computed
+# without being declared, and a declaration cannot go unimplemented.
+#
+# Fields
+#   family        One of the nine families in the portfolio standard.
+#   fit_on        train_only -> reads interactions, restricted to the
+#                 training partition.
+#                 catalogue  -> reads item metadata only; no label signal.
+#   point_in_time Whether the value depends on *when* it is computed. Such
+#                 features receive an explicit `as_of` cut-off and are
+#                 covered by tests/test_features_leakage.py.
+#   fill          Value substituted for entities absent at serving time.
+#   rationale     Why the feature exists. Required; a feature nobody can
+#                 justify is a feature nobody can debug.
+
+version: 1
+dataset: movielens
+
+features:
+  - name: user_activity_count
+    family: user
+    dtype: float64
+    transform: user_activity_count
+    fit_on: train_only
+    point_in_time: false
+    params:
+      log_transform: true
+    fill:
+      unknown_user: 0.0
+    rationale: >
+      Interaction volume separates a user with enough history for
+      collaborative signal from one riding on the popularity prior. The
+      distribution is heavy-tailed, so it is log-compressed before any model
+      consumes it linearly.
+
+  - name: user_mean_rating
+    family: user
+    dtype: float64
+    transform: user_mean_rating
+    fit_on: train_only
+    point_in_time: false
+    params: {}
+    fill:
+      unknown_user: global_rating_mean
+    rationale: >
+      Implicit filtering keeps only positives, so this measures how
+      generously a user rates things they already liked. It calibrates the
+      confidence attached to a positive rather than the positive itself.
+
+  - name: user_tenure_days
+    family: user
+    dtype: float64
+    transform: user_tenure_days
+    fit_on: train_only
+    point_in_time: false
+    params: {}
+    fill:
+      unknown_user: 0.0
+    rationale: >
+      Calendar span between a user's first and last training event.
+      Distinguishes fifty ratings spread over three years from fifty ratings
+      in one weekend; the two imply very different taste stability.
+
+  - name: user_recency_days
+    family: context
+    dtype: float64
+    transform: user_recency_days
+    fit_on: train_only
+    point_in_time: true
+    params: {}
+    fill:
+      unknown_user: 0.0
+    rationale: >
+      Days from a user's last training event to the cut-off. A dormant user's
+      stored preferences are staler than an active user's, and the serving
+      path should weigh them accordingly. Depends on the cut-off, so it is
+      recomputed per partition and never cached across splits.
+
+  - name: user_genre_affinity
+    family: text
+    dtype: object
+    transform: user_genre_affinity
+    fit_on: train_only
+    point_in_time: true
+    params:
+      half_life_days: 180.0
+      top_k: 5
+    fill:
+      unknown_user: ""
+    rationale: >
+      Genre preferences weighted by 2^(-age_days / half_life), so a genre
+      abandoned two years ago is discounted against one watched last month.
+      MovieLens has true event times, which makes the decay calendar-based
+      rather than a rank proxy.
+
+  - name: item_popularity_rank
+    family: item
+    dtype: float64
+    transform: item_popularity_rank
+    fit_on: train_only
+    point_in_time: false
+    params:
+      normalize: true
+    fill:
+      unknown_item: 1.0
+    rationale: >
+      Normalized dense popularity rank over the full catalogue. Backs the
+      popularity baseline and the cold-start fallback. Total over the
+      catalogue by construction, so serving never hits a missing key.
+
+  - name: item_trailing_popularity
+    family: statistical
+    dtype: float64
+    transform: item_trailing_popularity
+    fit_on: train_only
+    point_in_time: true
+    params:
+      window_days: 90.0
+      log_transform: true
+    fill:
+      unknown_item: 0.0
+    rationale: >
+      Interaction count in the 90 days before the cut-off. Lifetime
+      popularity is dominated by whatever was popular years ago; a trailing
+      window tracks what is popular now, which is what a system serving
+      traffic at the cut-off actually needs. This is the feature that
+      justifies evaluating on a temporal split.
+
+  - name: item_genre_tokens
+    family: text
+    dtype: object
+    transform: item_genre_tokens
+    fit_on: catalogue
+    point_in_time: false
+    params:
+      separator: "|"
+    fill:
+      unknown_item: ""
+    rationale: >
+      Sorted, deduplicated genre tokens. Content signal available for items
+      with no interactions at all, which is the only thing a purely
+      collaborative model cannot supply for a cold item.
+
+  - name: item_release_year
+    family: item
+    dtype: float64
+    transform: item_release_year
+    fit_on: catalogue
+    point_in_time: false
+    params:
+      fallback: 0.0
+    rationale: >
+      Release year parsed from the trailing "(YYYY)" in the MovieLens title,
+      which has no dedicated column. Combined with the event timestamp it
+      yields item age at interaction time, a strong driver of catalogue
+      demand. The fallback is a sentinel meaning "unknown", not year zero.
+    fill:
+      unknown_item: 0.0

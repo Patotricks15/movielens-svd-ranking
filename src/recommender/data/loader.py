@@ -140,6 +140,10 @@ def build_implicit_feedback(
         {
             "user_index": frame["userId"].map(user_map).astype(np.int64),
             "item_index": frame["movieId"].map(item_map).astype(np.int64),
+            # Retained after binarization: the rating still carries confidence
+            # (a 5.0 is a stronger positive than a 4.0) even though the model
+            # treats every surviving row as a 1.
+            "rating": frame["rating"].astype(np.float64),
             "timestamp": frame["timestamp"].astype(np.int64),
         }
     )
