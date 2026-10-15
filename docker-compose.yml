@@ -1,0 +1,21 @@
+# Floci/LocalStack: the whole AWS surface this project uses, locally and free.
+services:
+  floci:
+    image: localstack/localstack:3.5
+    container_name: movielens-ncf-floci
+    ports:
+      - "4566:4566"
+    environment:
+      - SERVICES=s3,dynamodb,lambda,iam,logs,events,sts
+      - DEBUG=0
+      - LAMBDA_EXECUTOR=docker
+      - DOCKER_HOST=unix:///var/run/docker.sock
+      - PERSISTENCE=0
+    volumes:
+      - "./.floci:/var/lib/localstack"
+      - "/var/run/docker.sock:/var/run/docker.sock"
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:4566/_localstack/health"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
