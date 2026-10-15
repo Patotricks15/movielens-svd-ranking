@@ -1,8 +1,8 @@
-"""Biased matrix factorization trained with regularized SGD.
+"""Classical PureSVD collaborative filtering.
 
-This is the classical Funk-SVD formulation popularized by the Netflix Prize.
-It is intentionally implemented with NumPy rather than a neural framework:
-the model is a linear latent-factor estimator with user/item biases.
+PureSVD applies truncated singular-value decomposition directly to the sparse
+user-item interaction matrix. It is linear algebra, not a neural network, and
+has no optimizer, hidden layers, or deep-learning dependency.
 """
 
 from __future__ import annotations
@@ -10,81 +10,59 @@ from __future__ import annotations
 from dataclasses import dataclass
 
 import numpy as np
+from scipy.sparse import csr_matrix
+from scipy.sparse.linalg import svds
 
 from recommender.data.splitting import Split
 
 
 @dataclass
 class SVDRecommender:
-    """Explicit-feedback matrix factorization used for top-N ranking."""
+    """Low-rank reconstruction of the implicit interaction matrix."""
 
     n_factors: int = 32
-    epochs: int = 30
-    learning_rate: float = 0.01
-    regularization: float = 0.05
-    learning_rate_decay: float = 0.95
     random_state: int = 42
     user_factors: np.ndarray | None = None
+    singular_values: np.ndarray | None = None
     item_factors: np.ndarray | None = None
-    user_bias: np.ndarray | None = None
-    item_bias: np.ndarray | None = None
-    global_mean: float = 0.0
-    train_rmse_: list[float] | None = None
+    popularity: np.ndarray | None = None
+    reconstruction_rmse_: float | None = None
     n_users: int = 0
     n_items: int = 0
 
     def fit(self, split: Split) -> SVDRecommender:
-        """Fit latent factors using only the training partition."""
-        if self.n_factors < 1 or self.epochs < 1:
-            raise ValueError("n_factors and epochs must be positive.")
-
-        frame = split.train
-        users = frame["user_index"].to_numpy(dtype=np.int64)
-        items = frame["item_index"].to_numpy(dtype=np.int64)
-        ratings = frame["rating"].to_numpy(dtype=np.float64)
-        if ratings.size == 0:
-            raise ValueError("Cannot fit SVD on an empty training partition.")
-
+        """Fit a truncated SVD on the binary training matrix."""
+        maximum_rank = min(split.n_users, split.n_items) - 1
+        if not 1 <= self.n_factors <= maximum_rank:
+            raise ValueError(
+                f"n_factors must be between 1 and {maximum_rank}, got {self.n_factors}."
+            )
+        users, items = split.train_matrix_entries()
+        matrix = csr_matrix(
+            (np.ones(users.size), (users, items)),
+            shape=(split.n_users, split.n_items),
+            dtype=np.float64,
+        )
+        user_factors, singular_values, item_factors = svds(
+            matrix,
+            k=self.n_factors,
+            which="LM",
+            random_state=self.random_state,
+        )
+        order = np.argsort(singular_values)[::-1]
+        self.user_factors = user_factors[:, order]
+        self.singular_values = singular_values[order]
+        self.item_factors = item_factors[order, :]
+        self.popularity = np.asarray(matrix.sum(axis=0)).ravel()
         self.n_users = split.n_users
         self.n_items = split.n_items
-        self.global_mean = float(ratings.mean())
-        rng = np.random.default_rng(self.random_state)
-        scale = 0.1 / np.sqrt(self.n_factors)
-        self.user_factors = rng.normal(0.0, scale, (self.n_users, self.n_factors))
-        self.item_factors = rng.normal(0.0, scale, (self.n_items, self.n_factors))
-        self.user_bias = np.zeros(self.n_users, dtype=np.float64)
-        self.item_bias = np.zeros(self.n_items, dtype=np.float64)
-        self.train_rmse_ = []
 
-        order = np.arange(ratings.size)
-        lr = self.learning_rate
-        for _ in range(self.epochs):
-            rng.shuffle(order)
-            squared_error = 0.0
-            for index in order:
-                user = users[index]
-                item = items[index]
-                prediction = self._predict_known(user, item)
-                error = ratings[index] - prediction
-                squared_error += error * error
-
-                old_user = self.user_factors[user].copy()
-                self.user_bias[user] += lr * (
-                    error - self.regularization * self.user_bias[user]
-                )
-                self.item_bias[item] += lr * (
-                    error - self.regularization * self.item_bias[item]
-                )
-                self.user_factors[user] += lr * (
-                    error * self.item_factors[item]
-                    - self.regularization * self.user_factors[user]
-                )
-                self.item_factors[item] += lr * (
-                    error * old_user - self.regularization * self.item_factors[item]
-                )
-
-            self.train_rmse_.append(float(np.sqrt(squared_error / ratings.size)))
-            lr *= self.learning_rate_decay
+        reconstruction = (
+            self.user_factors * self.singular_values
+        ) @ self.item_factors
+        self.reconstruction_rmse_ = float(
+            np.sqrt(np.mean((matrix.toarray() - reconstruction) ** 2))
+        )
         return self
 
     def _check_fitted(self) -> None:
@@ -92,51 +70,23 @@ class SVDRecommender:
             value is None
             for value in (
                 self.user_factors,
+                self.singular_values,
                 self.item_factors,
-                self.user_bias,
-                self.item_bias,
+                self.popularity,
             )
         ):
             raise RuntimeError("Model is not fitted; call fit() first.")
 
-    def _predict_known(self, user: int, item: int) -> float:
-        self._check_fitted()
-        assert self.user_factors is not None
-        assert self.item_factors is not None
-        assert self.user_bias is not None
-        assert self.item_bias is not None
-        return float(
-            self.global_mean
-            + self.user_bias[user]
-            + self.item_bias[item]
-            + self.user_factors[user] @ self.item_factors[item]
-        )
-
-    def predict(self, user_index: int, item_index: int) -> float:
-        """Predict a rating, falling back to learned biases for cold entities."""
-        self._check_fitted()
-        if not 0 <= item_index < self.n_items:
-            raise IndexError(f"item_index {item_index} is outside the catalogue.")
-        assert self.item_bias is not None
-        if not 0 <= user_index < self.n_users:
-            return float(self.global_mean + self.item_bias[item_index])
-        return self._predict_known(user_index, item_index)
-
     def score_user(self, user_index: int) -> np.ndarray:
-        """Score the complete item catalogue for one user."""
+        """Score every item, with popularity as the cold-user fallback."""
         self._check_fitted()
         assert self.user_factors is not None
+        assert self.singular_values is not None
         assert self.item_factors is not None
-        assert self.user_bias is not None
-        assert self.item_bias is not None
+        assert self.popularity is not None
         if not 0 <= user_index < self.n_users:
-            return self.global_mean + self.item_bias.copy()
-        return (
-            self.global_mean
-            + self.user_bias[user_index]
-            + self.item_bias
-            + self.item_factors @ self.user_factors[user_index]
-        )
+            return self.popularity.copy()
+        return (self.user_factors[user_index] * self.singular_values) @ self.item_factors
 
     def recommend(
         self, user_index: int, k: int = 10, exclude: set[int] | None = None
