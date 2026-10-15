@@ -3,13 +3,13 @@
 Terraform for the serving path: an S3 bucket for model artifacts, a DynamoDB
 table of precomputed top-N lists, and a Lambda behind IAM that reads them.
 
-The default profile targets **Floci/LocalStack**, so `apply` costs nothing and
-needs no AWS account.
+The default profile targets the local **Floci** AWS emulator, so `apply`
+costs nothing and needs no AWS account.
 
 ## Local (default)
 
 ```bash
-docker compose up -d                       # start LocalStack on :4566
+docker compose up -d                       # start Floci on :4566
 terraform init
 terraform validate
 terraform apply -auto-approve
@@ -23,12 +23,13 @@ docker compose down
 The same configuration deploys to a real account by flipping one variable:
 
 ```bash
-terraform apply -var use_localstack=false -var aws_region=sa-east-1
+terraform apply -var use_floci=false -var aws_region=sa-east-1
 ```
 
-With `use_localstack = false` the provider stops injecting dummy credentials
-and custom endpoints, and the two features LocalStack does not emulate
-(DynamoDB point-in-time recovery and server-side encryption) switch on.
+With `use_floci = false` the provider stops injecting dummy credentials
+and custom endpoints, and the two features the Floci emulator does not
+implement (DynamoDB point-in-time recovery and server-side encryption)
+switch on.
 
 ## Variables
 
@@ -37,8 +38,8 @@ and custom endpoints, and the two features LocalStack does not emulate
 | `project_name` | `movielens-svd` | Prefix for every resource name |
 | `environment` | `dev` | Environment tag and name suffix |
 | `aws_region` | `us-east-1` | Target region |
-| `use_localstack` | `true` | Target LocalStack instead of real AWS |
-| `localstack_endpoint` | `http://localhost:4566` | LocalStack address |
+| `use_floci` | `true` | Target the local Floci emulator instead of real AWS |
+| `floci_endpoint` | `http://localhost:4566` | Floci emulator address |
 | `artifact_retention_days` | `90` | Expiry for non-current model versions in S3 |
 | `training_schedule` | `cron(0 3 * * ? *)` | Nightly retraining trigger |
 
@@ -60,7 +61,7 @@ request path never writes, so it is not granted write permissions.
 
 ## Cost
 
-Everything above is free on LocalStack. On real AWS at portfolio traffic:
+Everything above is free on Floci. On real AWS at portfolio traffic:
 S3 under $0.05/month for less than 1 GB, DynamoDB on-demand under $1/month,
 and Lambda within the free tier. `terraform destroy` plus `docker compose
 down` removes all of it.

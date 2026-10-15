@@ -11,19 +11,19 @@ variable "environment" {
 }
 
 variable "aws_region" {
-  description = "AWS region. LocalStack ignores this but the provider requires it."
+  description = "AWS region. Floci ignores this but the provider requires it."
   type        = string
   default     = "us-east-1"
 }
 
-variable "use_localstack" {
-  description = "Target Floci/LocalStack instead of real AWS."
+variable "use_floci" {
+  description = "Target the local Floci AWS emulator instead of real AWS."
   type        = bool
   default     = true
 }
 
-variable "localstack_endpoint" {
-  description = "Endpoint used for every service when use_localstack is true."
+variable "floci_endpoint" {
+  description = "Endpoint used for every service when use_floci is true."
   type        = string
   default     = "http://localhost:4566"
 }

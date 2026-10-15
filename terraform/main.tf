@@ -45,12 +45,12 @@ resource "aws_s3_bucket_public_access_block" "artifacts" {
   restrict_public_buckets = true
 }
 
-// LocalStack community does not converge the propagation check the AWS
+// The floci/floci emulator does not converge the propagation check the AWS
 // provider polls for here, so a local `apply` hangs for 3 minutes and then
 // fails. The rule is real-AWS only; everything else in this stack runs in
 // both modes.
 resource "aws_s3_bucket_lifecycle_configuration" "artifacts" {
-  count  = var.use_localstack ? 0 : 1
+  count  = var.use_floci ? 0 : 1
   bucket = aws_s3_bucket.artifacts.id
 
   rule {
@@ -82,11 +82,11 @@ resource "aws_dynamodb_table" "topn" {
   }
 
   point_in_time_recovery {
-    enabled = !var.use_localstack
+    enabled = !var.use_floci
   }
 
   server_side_encryption {
-    enabled = !var.use_localstack
+    enabled = !var.use_floci
   }
 }
 

@@ -13,4 +13,4 @@ not treated as evidence of superiority.
 Training writes factors and feature tables to S3 and publishes precomputed
 top-$N$ lists to DynamoDB. Lambda performs a bounded key lookup. EventBridge
 schedules retraining and CloudWatch receives logs. The default Terraform
-profile targets Floci/LocalStack and therefore requires no paid AWS account.
+profile targets the local Floci AWS emulator and therefore requires no paid AWS account.

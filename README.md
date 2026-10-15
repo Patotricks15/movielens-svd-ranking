@@ -157,8 +157,8 @@ terraform -chdir=terraform destroy -auto-approve
 docker compose down
 ```
 
-Terraform targets Floci/LocalStack at `http://localhost:4566` with dummy
-credentials, so the default path costs nothing and needs no AWS account.
+Terraform targets the local Floci AWS emulator at `http://localhost:4566` with
+dummy credentials, so the default path costs nothing and needs no AWS account.
 Real-AWS deployment is documented in [`terraform/README.md`](terraform/README.md).
 
 ---

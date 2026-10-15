@@ -19,6 +19,6 @@ output "inference_role_arn" {
 }
 
 output "endpoint_mode" {
-  description = "Whether the stack is pointed at LocalStack or real AWS."
-  value       = var.use_localstack ? "localstack (${var.localstack_endpoint})" : "aws (${var.aws_region})"
+  description = "Whether the stack is pointed at Floci or real AWS."
+  value       = var.use_floci ? "floci (${var.floci_endpoint})" : "aws (${var.aws_region})"
 }
