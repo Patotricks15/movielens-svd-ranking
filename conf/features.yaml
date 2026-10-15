@@ -1,4 +1,4 @@
-# Feature specification for movielens-neural-ranking.
+# Feature specification for movielens-svd-ranking.
 #
 # Every feature the pipeline materializes is declared here. The registry
 # check in `recommender.features.registry` asserts this file and the

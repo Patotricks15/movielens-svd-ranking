@@ -3,9 +3,9 @@ requires = ["setuptools>=68"]
 build-backend = "setuptools.build_meta"
 
 [project]
-name = "movielens-neural-ranking"
+name = "movielens-svd-ranking"
 version = "0.1.0"
-description = "Neural collaborative filtering for MovieLens top-N ranking, with a leakage-tested point-in-time feature layer"
+description = "Classical SVD matrix factorization for MovieLens top-N ranking with leakage-tested temporal features"
 readme = "README.md"
 requires-python = ">=3.11"
 license = { text = "MIT" }
@@ -14,7 +14,6 @@ dependencies = [
     "numpy>=1.24",
     "pandas>=2.0",
     "scipy>=1.10",
-    "torch>=2.1",
     "pyyaml>=6.0",
     "pyarrow>=14.0",
 ]
@@ -24,7 +23,7 @@ dev = ["pytest>=7.4", "ruff>=0.6"]
 serving = ["boto3>=1.34"]
 
 [project.scripts]
-movielens-ncf = "recommender.cli:main"
+movielens-svd = "recommender.cli:main"
 
 [tool.setuptools.packages.find]
 where = ["src"]

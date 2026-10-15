@@ -1,8 +1,9 @@
-# MovieLens Neural Ranking
+# MovieLens Classical SVD Ranking
 
-Neural collaborative filtering (NeuMF) for MovieLens top-$N$ recommendation,
-benchmarked against matrix factorization and tuned neighbourhood baselines
-under a **global temporal split**.
+Classical biased SVD matrix factorization for MovieLens top-$N$
+recommendation, benchmarked against tuned item-neighbourhood and popularity
+baselines under a **global temporal split**. The implementation uses NumPy
+only: no neural networks, deep-learning framework, transformer, or LLM.
 
 MovieLens ships real event timestamps, so this project does what the anime
 BPR project could not: split on wall-clock time rather than on a per-user
@@ -14,10 +15,10 @@ much closer to how a deployed model is actually judged.
 
 ## Headline result
 
-See [Evaluation](#evaluation). The short version: NeuMF's advantage over a
-well-tuned MF baseline is small and arrives at a real cost in training time,
-and the gap narrows further under the temporal split than under the
-leave-last-one-out protocol most notebooks use. Both numbers are reported.
+See [Evaluation](#evaluation). SVD is judged against ItemKNN rather than against
+an intentionally weak baseline. Both global temporal and leave-last-one-out
+numbers are reported because protocol choice can move the result more than a
+small algorithm change.
 
 ---
 
@@ -97,13 +98,14 @@ docker run --rm -v "$PWD/docs":/data alpine chown -R "$(id -u):$(id -g)" /data
 |---|---|---|
 | `Popularity` | global count | Non-personalised floor |
 | `ItemKNN` | cosine item-item | The baseline most notebooks stop at |
-| `MF` | $\mathbf{p}_u^\top \mathbf{q}_i + b_i$ | Linear latent interaction |
-| `GMF` | $\mathbf{h}^\top (\mathbf{p}_u \odot \mathbf{q}_i)$ | Learned per-dimension weights |
-| `MLP` | $f_\theta([\mathbf{p}_u ; \mathbf{q}_i])$ | Non-linear interaction |
-| `NeuMF` | GMF $\oplus$ MLP | Fuses both, separate embeddings |
+| `SVD` | $\mu+b_u+b_i+\mathbf{p}_u^\top\mathbf{q}_i$ | Classical regularized matrix factorization |
+| `ItemKNN` | shrunk cosine co-occurrence | Strong neighbourhood baseline |
+| `Popularity` | global interaction count | Non-personalised floor |
+| `Random` | deterministic random ordering | Sanity-check floor |
 
-All neural models are trained with sampled binary cross-entropy against
-negatives drawn from the complement of each user's history.
+SVD is trained on explicit ratings with regularized stochastic gradient
+descent. Top-$N$ ranking uses the resulting predicted ratings after filtering
+the user's training history.
 
 ---
 
