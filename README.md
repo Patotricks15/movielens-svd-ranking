@@ -86,6 +86,10 @@ python -m venv .diagram-venv && .diagram-venv/bin/pip install drawpyo
 .diagram-venv/bin/python scripts/generate_diagrams.py
 docker run --rm -v "$PWD/docs":/data -w /data rlespinasse/drawio-export \
   -f svg -o . --output-mode relative --remove-page-suffix .
+docker run --rm -v "$PWD/docs":/data -w /data rlespinasse/drawio-export \
+  -f png -o . --output-mode relative --remove-page-suffix .
+# Never pass -t/--transparent to the PNG export above: it drops the white
+# background and the diagram turns invisible on GitHub's light theme.
 # The exporter writes as root; reclaim ownership before committing.
 docker run --rm -v "$PWD/docs":/data alpine chown -R "$(id -u):$(id -g)" /data
 ```

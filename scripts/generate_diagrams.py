@@ -9,6 +9,11 @@ Then rasterize with the draw.io exporter:
 
     docker run --rm -v "$PWD/docs":/data -w /data rlespinasse/drawio-export \
       -f svg -o . --output-mode relative --remove-page-suffix .
+    docker run --rm -v "$PWD/docs":/data -w /data rlespinasse/drawio-export \
+      -f png -o . --output-mode relative --remove-page-suffix .
+
+    Do not pass -t/--transparent to the PNG export: it produces a
+    transparent background instead of the white one the README expects.
 """
 
 from __future__ import annotations
