@@ -1,0 +1,7 @@
+\section{Dataset and Split}
+MovieLens ratings contain user, movie, rating, and Unix timestamp fields.
+Ratings of at least four define positive ranking interactions. An iterative
+five-core removes entities without enough evidence. If $\tau_1$ and $\tau_2$
+are the 80th and 90th timestamp percentiles, respectively, training uses
+$t<\tau_1$, validation uses $\tau_1\le t<\tau_2$, and test uses
+$t\ge\tau_2$. All transformations are fitted on training data only.

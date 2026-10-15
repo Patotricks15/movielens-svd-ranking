@@ -1,6 +1,6 @@
-# MovieLens Classical SVD Ranking
+# MovieLens Classical PureSVD Ranking
 
-Classical biased SVD matrix factorization for MovieLens top-$N$
+Classical PureSVD matrix factorization for MovieLens top-$N$
 recommendation, benchmarked against tuned item-neighbourhood and popularity
 baselines under a **global temporal split**. The implementation uses NumPy
 only: no neural networks, deep-learning framework, transformer, or LLM.
@@ -37,7 +37,7 @@ python scripts/build_features.py
 # Train, evaluate, recommend
 python -m recommender.cli train
 python -m recommender.cli evaluate
-python -m recommender.cli recommend --user-id 3 --k 10
+python -m recommender.cli recommend --user-id 1 --k 10
 ```
 
 The real dataset:
@@ -98,14 +98,14 @@ docker run --rm -v "$PWD/docs":/data alpine chown -R "$(id -u):$(id -g)" /data
 |---|---|---|
 | `Popularity` | global count | Non-personalised floor |
 | `ItemKNN` | cosine item-item | The baseline most notebooks stop at |
-| `SVD` | $\mu+b_u+b_i+\mathbf{p}_u^\top\mathbf{q}_i$ | Classical regularized matrix factorization |
+| `PureSVD` | $X\approx U_k\Sigma_kV_k^\top$ | Classical truncated matrix factorization |
 | `ItemKNN` | shrunk cosine co-occurrence | Strong neighbourhood baseline |
 | `Popularity` | global interaction count | Non-personalised floor |
 | `Random` | deterministic random ordering | Sanity-check floor |
 
-SVD is trained on explicit ratings with regularized stochastic gradient
-descent. Top-$N$ ranking uses the resulting predicted ratings after filtering
-the user's training history.
+PureSVD decomposes the binary user-item interaction matrix with sparse linear
+algebra. Top-$N$ ranking uses the low-rank reconstruction after filtering the
+user's training history.
 
 ---
 
@@ -137,7 +137,11 @@ writes both `paper/tables/results.tex` and the Markdown block below, so the
 README, the paper, and the code cannot drift apart.
 
 <!-- RESULTS:START -->
-Run `python scripts/export_results_table.py` to populate this table.
+| Model | NDCG@10 | Recall@10 | MRR@10 | Coverage |
+|---|---:|---:|---:|---:|
+| PureSVD | 0.0848 | 0.1010 | 0.1546 | 0.2838 |
+| ItemKNN | 0.0961 | 0.1209 | 0.1613 | 0.5292 |
+| Popularity | 0.0863 | 0.0867 | 0.1841 | 0.0284 |
 <!-- RESULTS:END -->
 
 ---

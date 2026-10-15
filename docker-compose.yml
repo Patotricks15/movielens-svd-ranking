@@ -2,7 +2,7 @@
 services:
   floci:
     image: localstack/localstack:3.5
-    container_name: movielens-ncf-floci
+    container_name: movielens-svd-floci
     ports:
       - "4566:4566"
     environment:

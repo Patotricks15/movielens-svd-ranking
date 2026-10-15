@@ -1,0 +1,12 @@
+\section{Feature Engineering}
+The declarative catalogue in \texttt{conf/features.yaml} covers user activity,
+rating statistics, movie popularity, age, genre count, recency, and
+time-decayed genre affinity. A prediction at time $t$ uses only events with
+$t_{ui}<t$. Time-decayed affinity is
+\[
+a_{uc}(t)=\sum_{j:t_{uj}<t}\mathbb{1}[c_j=c]
+          \exp[-\lambda(t-t_{uj})].
+\]
+Schema, future-injection, fit-scope, and training/serving parity tests enforce
+the contract. The generated feature catalogue is shown below.
+\scriptsize\input{tables/features}\normalsize

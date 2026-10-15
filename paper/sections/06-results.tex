@@ -1,0 +1,16 @@
+\section{Results}
+\begin{table}[h]
+\centering\scriptsize
+\caption{Global temporal test results on the reproducible fixture.}
+\input{tables/results}
+\end{table}
+ItemKNN is strongest on the fixture. PureSVD substantially improves over the
+initial explicit-positive formulation but does not beat the tuned
+neighbourhood method. This negative result is retained: method complexity is
+not treated as evidence of superiority.
+
+\section{Deployment}
+Training writes factors and feature tables to S3 and publishes precomputed
+top-$N$ lists to DynamoDB. Lambda performs a bounded key lookup. EventBridge
+schedules retraining and CloudWatch receives logs. The default Terraform
+profile targets Floci/LocalStack and therefore requires no paid AWS account.

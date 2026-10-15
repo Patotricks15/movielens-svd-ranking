@@ -1,0 +1,10 @@
+\section{Experimental Setup}
+We report Recall@10, MRR@10, catalogue coverage, and
+\[
+\mathrm{NDCG}@K=\frac{1}{|\mathcal U|}\sum_u
+\frac{\sum_{j=1}^K(2^{rel_{uj}}-1)/\log_2(j+1)}
+{\mathrm{IDCG}_u@K}.
+\]
+Candidates are the full catalogue minus training history. Hyperparameters are
+selected on validation only. Synthetic data is included for CI; real
+MovieLens data is downloaded on demand and is never committed.

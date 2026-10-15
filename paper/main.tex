@@ -1,0 +1,24 @@
+\documentclass[10pt,twocolumn]{article}
+\usepackage[margin=0.75in]{geometry}
+\usepackage{amsmath,amssymb,booktabs,graphicx,hyperref}
+\title{PureSVD for Time-Aware Movie Recommendation}
+\author{Patrick Gomes de Oliveira}
+\date{\today}
+\begin{document}
+\maketitle
+\begin{abstract}
+We evaluate classical truncated singular-value decomposition for top-$N$
+MovieLens recommendation under a strict global temporal split. The system
+includes point-in-time features, strong non-neural baselines, reproducible
+Floci/AWS infrastructure, and an offline-to-online parity test.
+\end{abstract}
+\input{sections/01-introduction}
+\input{sections/02-dataset}
+\input{sections/03-feature-engineering}
+\input{sections/04-methodology}
+\input{sections/05-experiments}
+\input{sections/06-results}
+\input{sections/07-conclusion}
+\bibliographystyle{plain}
+\bibliography{references}
+\end{document}

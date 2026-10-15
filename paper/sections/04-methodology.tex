@@ -1,0 +1,20 @@
+\section{Methodology}
+Let $X\in\{0,1\}^{|\mathcal U|\times|\mathcal I|}$ be the sparse training
+interaction matrix. PureSVD computes the rank-$k$ approximation
+\[
+X\approx U_k\Sigma_kV_k^\top
+\]
+that minimizes $\|X-\hat X\|_F$ among rank-$k$ matrices. The score for user
+$u$ and item $i$ is
+\[
+\hat y_{ui}=(U_k)_{u:}\Sigma_k(V_k)_{:i}.
+\]
+Items in the user's training history are removed before top-$N$ selection.
+Unseen users receive the popularity ordering. Sparse Lanczos SVD avoids
+materializing the full decomposition.
+
+The strongest baseline uses shrunk cosine:
+\[
+s(i,j)=\frac{X_{:i}^{\top}X_{:j}}
+{\|X_{:i}\|_2\|X_{:j}\|_2+\beta}.
+\]
